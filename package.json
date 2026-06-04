@@ -1,0 +1,62 @@
+{
+  "name": "universal-ai-agent",
+  "version": "2.0.0",
+  "description": "Universal Screen-Aware AI Desktop Assistant",
+  "main": "src/main/main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "NODE_ENV=development electron .",
+    "build": "electron-builder",
+    "build:win": "electron-builder --win",
+    "build:mac": "electron-builder --mac",
+    "build:linux": "electron-builder --linux"
+  },
+  "keywords": [
+    "ai",
+    "assistant",
+    "desktop",
+    "electron",
+    "ocr"
+  ],
+  "author": "uvmanishankar",
+  "license": "MIT",
+  "dependencies": {
+    "dotenv": "^16.3.1",
+    "electron-store": "^8.1.0",
+    "openai": "^4.20.0",
+    "screenshot-desktop": "^1.12.7",
+    "sharp": "^0.32.6",
+    "sqlite3": "^6.0.1",
+    "tesseract.js": "^5.0.3"
+  },
+  "devDependencies": {
+    "electron": "^42.3.3",
+    "electron-builder": "^26.8.1"
+  },
+  "build": {
+    "appId": "com.uvmanishankar.ai-agent",
+    "productName": "Universal AI Agent",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "src/**/*",
+      "assets/**/*",
+      "data/**/*",
+      "node_modules/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "assets/icon.ico"
+    },
+    "mac": {
+      "target": "dmg",
+      "icon": "assets/icon.icns"
+    },
+    "linux": {
+      "target": "AppImage",
+      "icon": "assets/icon.png"
+    }
+  }
+}
