@@ -1,6 +1,6 @@
 # Universal AI Desktop Agent v2.0
 
-A screen-aware AI assistant that runs on your desktop, captures your screen, extracts text via OCR, and sends it to an LLM for instant explanations, summaries, code reviews, and more.
+A screen-aware AI assistant that runs on your desktop, reads browser tabs via DOM extraction, and sends content to Groq LLM for instant explanations, solutions, code reviews, and more.
 
 ---
 
@@ -8,12 +8,12 @@ A screen-aware AI assistant that runs on your desktop, captures your screen, ext
 
 | Feature | Details |
 |---|---|
-| 🖥️ Screen Capture | Full-screen capture with one hotkey |
-| 🔤 OCR | Tesseract.js — no cloud needed for text extraction |
+| 🌐 Browser DOM Reading | Extracts content from active browser tabs (perfect for LeetCode, docs, etc.) |
+| 🖥️ Screen Fallback | Screenshot capture for non-web content |
 | 🤖 AI Modes | Explain · Summarize · Teach · Code Review · Practice |
-| ⌨️ Global Hotkeys | Ctrl+Shift+A/H/C/R |
+| ⌨️ Global Hotkeys | Ctrl+Shift+A (analyze) · Ctrl+Shift+C (capture) · Ctrl+Shift+H (toggle) · Ctrl+Shift+R (refresh) |
 | 🗃️ History | SQLite session memory |
-| 📦 Tray Mode | Lives in system tray |
+| 📦 Tray Mode | Invisible overlay — perfect for Teams meetings |
 | 🔒 Privacy | Manual activation only — no continuous capture |
 | 🏗️ Cross-platform | Windows · macOS · Linux |
 
@@ -24,7 +24,8 @@ A screen-aware AI assistant that runs on your desktop, captures your screen, ext
 ### Prerequisites
 - [Node.js 20+](https://nodejs.org/)
 - [Git](https://git-scm.com/)
-- An [OpenAI API key](https://platform.openai.com/api-keys)
+- A [Groq API key](https://console.groq.com/keys)
+- Chrome, Edge, or Brave browser (for tab reading)
 
 ### 1. Clone & Install
 
@@ -41,10 +42,10 @@ npm install
 cp .env.example .env
 ```
 
-Open `.env` and replace `your_openai_api_key_here` with your real key:
+Open `.env` and replace `your_groq_api_key_here` with your real key:
 ```env
-OPENAI_API_KEY=sk-proj-xxxxxxxxxxxxxxxxxxxx
-OPENAI_MODEL=gpt-4o-mini        # or gpt-4o for higher quality
+GROQ_API_KEY=gsk_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+GROQ_MODEL=llama-3.1-70b-versatile
 ```
 
 ### 3. Run
@@ -54,6 +55,26 @@ npm start
 ```
 
 The app opens in the top-right corner of your screen.
+
+### 4. Enable Browser Tab Reading (Optional but Recommended)
+
+For reading browser tabs (LeetCode, docs, etc.), your browser needs to have remote debugging enabled:
+
+**Chrome / Edge / Brave:**
+```bash
+# Windows
+chrome.exe --remote-debugging-port=9222
+
+# macOS
+/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --remote-debugging-port=9222
+
+# Linux
+google-chrome --remote-debugging-port=9222
+```
+
+Or, launch your browser normally and the app will try to read the active tab when you click "Analyze".
+
+> 💡 **Tip:** When in a Teams/Zoom meeting, activate the invisible assistant overlay and open LeetCode or any website. Press `Ctrl+Shift+A` to get solutions without showing your screen to others!
 
 ---
 
@@ -114,10 +135,10 @@ universal-ai-agent/
 │   │   └── capture.js       # Screenshot + preprocessing (Sharp)
 │   ├── context/
 │   │   └── windowDetector.js # Active window detection (Win/Mac/Linux)
-│   ├── ocr/
-│   │   └── ocr.js           # Tesseract.js OCR pipeline
+│   ├── browser/
+│   │   └── domExtractor.js  # Browser DOM extraction (Playwright)
 │   ├── agent/
-│   │   └── llm.js           # OpenAI API integration
+│   │   └── llm.js           # Groq API integration (OpenAI-compatible)
 │   └── memory/
 │       └── db.js            # SQLite session history
 ├── assets/
@@ -133,9 +154,9 @@ universal-ai-agent/
 
 | Service | Purpose | Where to get |
 |---|---|---|
-| **OpenAI** | LLM responses (required) | [platform.openai.com](https://platform.openai.com/api-keys) |
+| **Groq** | LLM responses (required) | [console.groq.com/keys](https://console.groq.com/keys) |
 
-**Cost estimate:** Using `gpt-4o-mini`, roughly 0.01–0.05 USD per analysis depending on screen content length.
+**Cost estimate:** Groq offers free tier with generous rate limits. Using `llama-3.1-70b-versatile`, minimal cost for most personal use.
 
 ---
 
@@ -168,7 +189,9 @@ universal-ai-agent/
 
 ## 🔒 Privacy
 
-- Screen is captured **only when you press the hotkey** — no background monitoring
-- OCR and context are sent to OpenAI's API only when you explicitly trigger analysis
+- Browser content and screenshots are read **only when you press the hotkey** — no background monitoring
+- Content extraction happens locally (Playwright reads your browser's DOM)
+- Browser content and context are sent to Groq's API only when you explicitly trigger analysis
 - All history stored locally in SQLite
 - Use "Clear History" from the tray menu to wipe all stored data
+- Invisible overlay window won't be captured by screen sharing (e.g., Teams meetings)

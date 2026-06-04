@@ -4,7 +4,7 @@ contextBridge.exposeInMainWorld('aiAgent', {
   // Core actions
   getContext: () => ipcRenderer.invoke('get-context'),
   captureScreen: (mode) => ipcRenderer.invoke('capture-screen', mode),
-  runOCR: (imgPath) => ipcRenderer.invoke('run-ocr', imgPath),
+  extractFromBrowser: () => ipcRenderer.invoke('extract-from-browser'),
   askLLM: (params) => ipcRenderer.invoke('ask-llm', params),
   getHistory: (limit) => ipcRenderer.invoke('get-history', limit),
 

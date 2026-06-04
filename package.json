@@ -16,7 +16,8 @@
     "assistant",
     "desktop",
     "electron",
-    "ocr"
+    "browser",
+    "dom-extraction"
   ],
   "author": "uvmanishankar",
   "license": "MIT",
@@ -24,10 +25,10 @@
     "dotenv": "^16.3.1",
     "electron-store": "^8.1.0",
     "openai": "^4.20.0",
+    "playwright": "^1.40.0",
     "screenshot-desktop": "^1.12.7",
     "sharp": "^0.32.6",
-    "sqlite3": "^6.0.1",
-    "tesseract.js": "^5.0.3"
+    "sqlite3": "^6.0.1"
   },
   "devDependencies": {
     "electron": "^42.3.3",

@@ -87,8 +87,14 @@ async function triggerAnalyze() {
 
 function clearHistory() {
   const db = require('../memory/db');
-  db.clearHistory();
-  mainWindow?.webContents.send('history-cleared');
+  db.clearHistory((err) => {
+    if (err) {
+      console.error('Error clearing history:', err);
+      mainWindow?.webContents.send('history-clear-error', err.message);
+    } else {
+      mainWindow?.webContents.send('history-cleared');
+    }
+  });
 }
 
 // ─── Global Shortcuts ──────────────────────────────────────────────────────────
@@ -114,7 +120,7 @@ function registerShortcuts() {
 // ─── IPC Handlers ──────────────────────────────────────────────────────────────
 function setupIPC() {
   const capture = require('../capture/capture');
-  const ocr = require('../ocr/ocr');
+  const domExtractor = require('../browser/domExtractor');
   const llm = require('../agent/llm');
   const db = require('../memory/db');
   const windowDetector = require('../context/windowDetector');
@@ -137,10 +143,11 @@ function setupIPC() {
     }
   });
 
-  ipcMain.handle('run-ocr', async (_, imgPath) => {
+  // NEW: Extract text from active browser tab via DOM
+  ipcMain.handle('extract-from-browser', async () => {
     try {
-      const text = await ocr.extractText(imgPath);
-      return { success: true, text };
+      const content = await domExtractor.extractTextOnly();
+      return { success: true, content };
     } catch (e) {
       return { success: false, error: e.message };
     }
@@ -180,7 +187,14 @@ function setupIPC() {
 app.whenReady().then(async () => {
   // Init DB
   const db = require('../memory/db');
-  await db.init();
+  try {
+    await db.init();
+  } catch (err) {
+    console.error('Fatal: Database initialization failed:', err.message);
+    // User-visible error: show fallback warning
+    const { dialog } = require('electron');
+    dialog.showErrorBox('Database Error', `Failed to initialize database: ${err.message}\nUsing in-memory fallback (history will not persist).`);
+  }
 
   createWindow();
   createTray();
@@ -190,6 +204,9 @@ app.whenReady().then(async () => {
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
+}).catch(err => {
+  console.error('Fatal: app.whenReady() failed:', err);
+  process.exit(1);
 });
 
 app.on('window-all-closed', () => {

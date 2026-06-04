@@ -269,8 +269,8 @@
     .action-btn.primary:hover { filter: brightness(1.1); }
     .action-btn.danger { border-color: var(--error); color: var(--error); }
 
-    /* ── OCR Preview ────────────────────────────── */
-    #ocr-preview {
+    /* ── Content Preview ────────────────────────────── */
+    #content-preview {
       background: var(--surface2);
       border: 1px solid var(--border);
       border-radius: 8px;
@@ -281,8 +281,8 @@
       overflow-y: auto;
       display: none;
     }
-    #ocr-preview.visible { display: block; }
-    #ocr-preview .label { color: var(--accent2); font-weight: 600; margin-bottom: 4px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+    #content-preview.visible { display: block; }
+    #content-preview .label { color: var(--accent2); font-weight: 600; margin-bottom: 4px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
 
     /* ── Prompt Input ───────────────────────────── */
     #input-area {
@@ -384,11 +384,8 @@
 
   <!-- Mode Selector -->
   <div id="mode-bar">
-    <button class="mode-btn active" data-mode="explain" onclick="setMode(this)">Explain</button>
-    <button class="mode-btn" data-mode="summarize" onclick="setMode(this)">Summarize</button>
-    <button class="mode-btn" data-mode="teach" onclick="setMode(this)">Teach Me</button>
-    <button class="mode-btn" data-mode="code-review" onclick="setMode(this)">Code Review</button>
-    <button class="mode-btn" data-mode="coding-practice" onclick="setMode(this)">Practice</button>
+    <button class="mode-btn active" data-mode="solution" onclick="setMode(this)">💡 Solution</button>
+    <button class="mode-btn" data-mode="explanation" onclick="setMode(this)">📖 Explanation</button>
   </div>
 
   <!-- Main Content -->
@@ -403,9 +400,9 @@
       </div>
     </div>
 
-    <div id="ocr-preview">
-      <div class="label">📄 Captured Text</div>
-      <div id="ocr-text-preview"></div>
+    <div id="content-preview">
+      <div class="label">📄 Extracted Content</div>
+      <div id="content-text-preview"></div>
     </div>
 
     <div id="response-actions" style="display:none;">
@@ -434,9 +431,9 @@
 
 <script>
   // ── State ──────────────────────────────────────────────────────────────
-  let currentMode = 'explain';
+  let currentMode = 'solution';
   let currentContext = null;
-  let lastOCRText = '';
+  let lastBrowserContent = '';
   let isAnalyzing = false;
 
   // ── Boot ───────────────────────────────────────────────────────────────
@@ -476,33 +473,35 @@
     isAnalyzing = true;
 
     const userPrompt = document.getElementById('user-input').value.trim();
-    setStatus('Capturing screen…', false);
-    showLoading('Capturing screen…');
+    setStatus('Extracting content…', false);
+    showLoading('Reading browser tab or screen…');
     setAnalyzeDisabled(true);
 
     try {
       // 1. Refresh context
       await loadContext();
 
-      // 2. Capture screen
-      const captureResult = await aiAgent.captureScreen('fullscreen');
-      if (!captureResult.success) throw new Error('Capture failed: ' + captureResult.error);
-
-      setStatus('Running OCR…', false);
-      showLoading('Extracting text from screen…');
-
-      // 3. OCR
-      const ocrResult = await aiAgent.runOCR(captureResult.path);
-      if (ocrResult.success && ocrResult.text) {
-        lastOCRText = ocrResult.text;
-        showOCRPreview(ocrResult.text);
+      // 2. Try browser extraction first (best for web pages like LeetCode)
+      let browserResult = await aiAgent.extractFromBrowser().catch(() => null);
+      
+      if (browserResult?.success) {
+        lastBrowserContent = browserResult.content;
+        showContentPreview(browserResult.content);
+        setStatus('Asking AI…', false);
+        showLoading('Getting AI response…');
+      } else {
+        // Fallback: capture screen and use for context
+        setStatus('Capturing screen…', false);
+        showLoading('Screen capture mode…');
+        const captureResult = await aiAgent.captureScreen('fullscreen');
+        if (!captureResult.success) throw new Error('Capture failed: ' + captureResult.error);
+        lastBrowserContent = '';
+        setStatus('Asking AI…', false);
+        showLoading('Getting AI response…');
       }
 
-      setStatus('Asking AI…', false);
-      showLoading('Getting AI response…');
-
-      // 4. LLM
-      const context = { ...currentContext, ocrText: lastOCRText };
+      // 3. LLM
+      const context = { ...currentContext, domContent: lastBrowserContent };
       const llmResult = await aiAgent.askLLM({ context, mode: currentMode, userPrompt });
 
       if (!llmResult.success) throw new Error(llmResult.error);
@@ -521,14 +520,16 @@
   }
 
   async function captureOnly() {
-    setStatus('Capturing…', false);
-    showLoading('Capturing…');
-    const res = await aiAgent.captureScreen('fullscreen');
-    if (res.success) {
-      const ocr = await aiAgent.runOCR(res.path);
-      lastOCRText = ocr.text || '';
-      showOCRPreview(lastOCRText);
-      setStatus('Captured ✓', true);
+    setStatus('Extracting…', false);
+    showLoading('Extracting…');
+    const res = await aiAgent.extractFromBrowser().catch(() => null);
+    if (res?.success) {
+      lastBrowserContent = res.content;
+      showContentPreview(lastBrowserContent);
+      setStatus('Extracted ✓', true);
+    } else {
+      showError('Could not extract browser content. Make sure you have a browser tab open.');
+      setStatus('No browser tab found', false);
     }
   }
 
@@ -550,9 +551,9 @@
     document.getElementById('response-actions').style.display = 'flex';
   }
 
-  function showOCRPreview(text) {
-    const el = document.getElementById('ocr-preview');
-    document.getElementById('ocr-text-preview').textContent = text.slice(0, 300) + (text.length > 300 ? '…' : '');
+  function showContentPreview(text) {
+    const el = document.getElementById('content-preview');
+    document.getElementById('content-text-preview').textContent = text.slice(0, 300) + (text.length > 300 ? '…' : '');
     el.classList.add('visible');
   }
 
@@ -560,8 +561,8 @@
     document.getElementById('response-text').innerHTML =
       `<div class="placeholder"><div class="big">🤖</div><div>Ready to analyze</div></div>`;
     document.getElementById('response-actions').style.display = 'none';
-    document.getElementById('ocr-preview').classList.remove('visible');
-    lastOCRText = '';
+    document.getElementById('content-preview').classList.remove('visible');
+    lastBrowserContent = '';
   }
 
   async function copyResponse() {

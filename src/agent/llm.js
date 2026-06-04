@@ -20,12 +20,8 @@ function getClient() {
 }
 
 const MODE_INSTRUCTIONS = {
-  explain: 'Explain what is shown on the screen clearly and concisely. Break down complex concepts into simple terms.',
-  summarize: 'Provide a concise summary of the visible screen content. Highlight the most important information.',
-  teach: 'Act as a teacher. Explain the concepts visible on screen step-by-step, with examples where helpful.',
-  'code-review': 'Review the code visible on screen. Identify bugs, suggest improvements, and highlight best practices.',
-  'coding-practice': 'Provide a coding challenge or exercise related to the code/topic visible on screen.',
-  custom: 'Address the user\'s specific question or request about the screen content.',
+  solution: 'Provide a direct, working solution to the problem or code visible on screen. Include complete code if applicable.',
+  explanation: 'Explain what is shown on the screen clearly and concisely. Break down complex concepts into simple terms, step-by-step.',
 };
 
 /**
@@ -33,8 +29,8 @@ const MODE_INSTRUCTIONS = {
  * @param {{ context: object, mode: string, userPrompt: string }} params
  * @returns {string} AI response
  */
-async function query({ context, mode = 'explain', userPrompt = '' }) {
-  const modeInstruction = MODE_INSTRUCTIONS[mode] || MODE_INSTRUCTIONS.explain;
+async function query({ context, mode = 'solution', userPrompt = '' }) {
+  const modeInstruction = MODE_INSTRUCTIONS[mode] || MODE_INSTRUCTIONS.solution;
 
   const systemPrompt = `You are a universal desktop AI assistant. You analyze visible screen content and help users understand, learn, and work more efficiently.
 
@@ -74,8 +70,8 @@ function buildUserContent(context, userPrompt) {
   if (context?.title && context.title !== 'Unknown') {
     parts.push(`**Window Title:** ${context.title}`);
   }
-  if (context?.ocrText) {
-    parts.push(`\n**Screen Content (OCR):**\n\`\`\`\n${context.ocrText.slice(0, 4000)}\n\`\`\``);
+  if (context?.domContent) {
+    parts.push(`\n**Browser Content:**\n\`\`\`\n${context.domContent.slice(0, 4000)}\n\`\`\``);
   }
   if (userPrompt) {
     parts.push(`\n**User Request:** ${userPrompt}`);

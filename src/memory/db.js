@@ -80,11 +80,12 @@ function getHistory(limit = 20) {
   return Promise.resolve(memoryStore.slice(0, limit));
 }
 
-function clearHistory() {
+function clearHistory(callback = () => {}) {
   if (db) {
-    db.run('DELETE FROM history');
+    db.run('DELETE FROM history', callback);
   } else {
     memoryStore.length = 0;
+    callback();
   }
 }
 

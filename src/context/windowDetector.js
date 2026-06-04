@@ -69,10 +69,21 @@ async function getLinuxActiveWindow(ts) {
     const { stdout: procName } = await execAsync(`cat /proc/${pid.trim()}/comm`);
     return { app: procName.trim(), title: title.trim(), timestamp: ts };
   } catch {
-    // fallback: wmctrl
+    // fallback: wmctrl — find the window marked with * (active)
     const { stdout } = await execAsync('wmctrl -l -p');
-    const lines = stdout.split('\n');
-    return { app: lines[0]?.split(/\s+/)[3] || 'Unknown', title: lines[0] || 'Unknown', timestamp: ts };
+    const lines = stdout.split('\n').filter(l => l.trim());
+    for (const line of lines) {
+      if (line.includes('*')) {
+        // Format: DESK PID WID * x y w h client_machine name
+        const parts = line.split(/\s+/);
+        const name = line.substring(line.lastIndexOf(' ') + 1) || 'Unknown';
+        return { app: parts[2] || 'Unknown', title: name, timestamp: ts };
+      }
+    }
+    // If no active window found, use first one as last resort
+    const parts = (lines[0] || '').split(/\s+/);
+    const name = (lines[0] || '').substring((lines[0] || '').lastIndexOf(' ') + 1) || 'Unknown';
+    return { app: parts[2] || 'Unknown', title: name, timestamp: ts };
   }
 }
 
